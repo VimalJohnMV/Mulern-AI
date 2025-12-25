@@ -1,116 +1,86 @@
-Bank Churn Prediction using PyTorch
-This project implements a Logistic Regression model using PyTorch to predict customer churn based on banking data. It includes a complete end-to-end pipeline covering data preprocessing, model training, intermediate evaluation, and performance visualization.
 
-Table of Contents
-Overview
+# Bank Churn Prediction using PyTorch Logistic Regression
 
-Dataset
+This project demonstrates a binary classification task to predict bank customer churn using a Logistic Regression model implemented with PyTorch. The notebook covers data loading, preprocessing, model definition, training, and evaluation, culminating in visualizations of the model's performance.
 
-Prerequisites
+## Dataset
 
-Project Structure
+The dataset used for this project is `bank_churn.csv`. It contains information about bank customers and whether they have churned.
 
-Model Architecture
+**Key Features:**
+*   `ID`: Customer identification (dropped during preprocessing).
+*   `age`: Age of the customer.
+*   `balance`: Account balance.
+*   `country`: Country of residence (categorical).
+*   `credit_score`: Customer's credit score.
+*   `estimated_salary`: Estimated salary.
+*   `gender`: Gender of the customer (already encoded as 0/1).
+*   `churn`: Target variable, indicating whether the customer churned (1) or not (0).
 
-Training & Evaluation
+## Preprocessing
 
-Results
+The raw data undergoes several preprocessing steps to prepare it for model training:
 
-Overview
-The goal of this project is to classify whether a bank customer will churn (leave the bank) or not based on various demographic and account-related features. The solution utilizes PyTorch for model construction and Scikit-Learn for robust data preprocessing.
+1.  **Drop `ID` Column**: The `ID` column is removed as it does not contribute to the prediction.
+2.  **Feature and Target Separation**: The `churn` column is separated as the target variable (`y`), and the remaining columns form the features (`X`).
+3.  **Column Type Definition**:
+    *   **Numerical Features**: `age`, `balance`, `credit_score`, `estimated_salary`.
+    *   **Categorical Features**: `country`.
+    *   **Pass-through Features**: `gender` (already numerical 0/1).
+4.  **Feature Transformation using `ColumnTransformer`**:
+    *   **Numerical features** are scaled using `StandardScaler` to normalize their range.
+    *   **Categorical features** (`country`) are one-hot encoded using `OneHotEncoder(drop='first')` to convert them into numerical format while avoiding multicollinearity.
+    *   The `gender` column is passed through without modification.
+5.  **Train-Validation Split**: The preprocessed data is split into training (80%) and validation (20%) sets using `train_test_split` with `random_state=42` for reproducibility.
+6.  **Tensor Conversion**: NumPy arrays for features and targets are converted into PyTorch `torch.tensor` objects with `dtype=torch.float32` for compatibility with PyTorch models. The target tensor `y` is unsqueezed to match the output shape of the model.
 
-Key features:
+## Model Architecture
 
-Data Preprocessing: Handling categorical variables (One-Hot Encoding) and scaling numerical features.
+A simple Logistic Regression model is implemented using PyTorch's `nn.Module`.
 
-PyTorch Model: Custom nn.Module implementation of Logistic Regression.
+```python
+class LogisticRegressionModel(nn.Module):
+    def __init__(self, input_dim):
+        super(LogisticRegressionModel, self).__init__()
+        self.linear = nn.Linear(input_dim, 1)
 
-Live Monitoring: Evaluates validation loss and accuracy every 10 epochs.
+    def forward(self, x):
+        return self.linear(x)
+```
 
-Visualization: Generates plots for Loss and Accuracy trends.
+*   The model consists of a single `nn.Linear` layer, which performs a linear transformation of the input features (`input_dim`) to a single output.
+*   The sigmoid activation function, typically used in logistic regression, is not explicitly defined in the `forward` method. Instead, it is implicitly handled by the choice of the loss function (`nn.BCEWithLogitsLoss`), which applies sigmoid internally for numerical stability.
 
-Dataset
-The model is trained on bank_churn.csv.
+The `input_dim` is dynamically determined from the shape of the processed training data.
 
-Target Variable:
+## Training
 
-churn: 1 if the client has left the bank, 0 otherwise.
+The model is trained over 500 epochs with the following configuration:
 
-Input Features:
+*   **Loss Function**: `nn.BCEWithLogitsLoss()` is used as the criterion. This loss combines a sigmoid layer and the binary cross-entropy loss in one single class, which is more numerically stable than using a `nn.Sigmoid` followed by `nn.BCELoss`.
+*   **Optimizer**: `optim.Adam` with a learning rate (`lr`) of `0.01` is used to update the model's weights during training.
 
-credit_score (Numerical)
+During the training loop:
+*   The model is set to training mode (`model.train()`).
+*   For each epoch, a forward pass is performed, loss is calculated, gradients are zeroed, backpropagation is performed, and optimizer steps the weights.
+*   Every 10 epochs, the model is evaluated on the validation set.
+    *   The model is set to evaluation mode (`model.eval()`) and gradients are disabled (`torch.no_grad()`).
+    *   Validation loss is calculated.
+    *   Validation accuracy is computed by applying a sigmoid to the model's raw outputs, thresholding at 0.5 to get binary predictions, and comparing them to the true labels.
+*   Training and validation losses, along with validation accuracies, are recorded for plotting. Progress is printed every 50 epochs.
 
-country (Categorical: Encoded via One-Hot Encoding)
+## Results
 
-gender (Binary)
+After training for 500 epochs, the model's performance on the validation set showed an accuracy of approximately **75-78%**. The training and validation losses converged, indicating that the model learned from the data without significant overfitting.
 
-age (Numerical)
+The plots generated by the notebook visualize the training and validation loss, and validation accuracy over the epochs:
 
-tenure (Numerical)
+*   **Training and Validation Loss Plot**: Shows how both losses decrease and stabilize during training.
+*   **Validation Accuracy Plot**: Illustrates the model's accuracy on the unseen validation data over time.
 
-products_number (Numerical)
+## Usage/Setup
 
-> Note: The ID column is dropped during preprocessing as it provides no predictive value.
-
-Prerequisites
-The code is designed to run in a Python 3 environment (like Google Colab). You will need the following libraries:
-
-Bash
-
-pip install torch pandas numpy scikit-learn matplotlib
-🚀 Project Structure
-The solution is contained within a single script/notebook that performs the following steps:
-
-Data Loading: Reads bank_churn.csv.
-
-Preprocessing: - Splits data into Features (X) and Target (y).
-
-Applies StandardScaler to numerical columns.
-
-Applies OneHotEncoder to categorical columns (e.g., country).
-
-Splits data into Training (80%) and Validation (20%) sets.
-
-Model Definition: Defines a single-layer Linear network.
-
-Training Loop: Optimizes the model using Adam optimizer and BCEWithLogitsLoss.
-
-Visualization: Exports a chart showing training progress.
-
-Model Architecture
-Type: Logistic Regression (implemented as a Neural Network).
-
-Input Layer: Dimension depends on preprocessed feature count.
-
-Output Layer: 1 unit (Logits).
-
-Activation: Sigmoid (applied implicitly via the loss function during training, explicitly during inference).
-
-Training & Evaluation
-The model is trained using the following hyperparameters:
-
-Epochs: 500
-
-Batch Size: Full batch (Gradient Descent)
-
-Learning Rate: 0.01
-
-Optimizer: Adam
-
-Loss Function: Binary Cross Entropy with Logits (BCEWithLogitsLoss)
-
-Intermediate evaluation is performed every 10 epochs on the validation set to monitor for overfitting.
-
-Results
-Upon completion of training (500 epochs), the model typically achieves:
-
-Validation Accuracy: ~71.6%
-
-Validation Loss: ~0.60
-
-Performance Visualization
-The script generates a plot training_metrics.png displaying:
-
-Left Graph: Training vs. Validation Loss.
-
-Right Graph: Validation Accuracy over time.
+To run this notebook:
+1.  Ensure you have a Colab environment or a local Python environment with the necessary libraries installed (`pandas`, `numpy`, `scikit-learn`, `torch`, `matplotlib`).
+2.  The `bank_churn.csv` dataset should be located at `/content/bank_churn.csv`.
+3.  Execute the cells sequentially in the provided Colab notebook.
